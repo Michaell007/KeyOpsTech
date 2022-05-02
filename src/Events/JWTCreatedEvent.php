@@ -19,10 +19,10 @@ class JWTCreatedEvent {
             return;
         }
 
-        $data['data'] = array(
-            'roles' => $user->getRoles(),
-            'email' => $user->getEmail(),
-        );
+        // $data['data'] = array(
+        //     'roles' => $user->getRoles(),
+        //     'email' => $user->getEmail(),
+        // );
 
         $event->setData($data);
     }
