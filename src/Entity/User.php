@@ -2,6 +2,8 @@
 
 namespace App\Entity;
 
+use Doctrine\Common\Collections\ArrayCollection;
+use Doctrine\Common\Collections\Collection;
 use Doctrine\ORM\Mapping as ORM;
 use App\Repository\UserRepository;
 use ApiPlatform\Core\Annotation\ApiResource;
@@ -10,10 +12,12 @@ use Symfony\Component\Security\Core\User\UserInterface;
 use Symfony\Component\Security\Core\User\PasswordAuthenticatedUserInterface;
 
 use Symfony\Component\Validator\Constraints as Assert;
+use Symfony\Bridge\Doctrine\Validator\Constraints\UniqueEntity;
 
 /**
  * @ORM\Entity(repositoryClass=UserRepository::class)
  * @ORM\HasLifecycleCallbacks
+ * @UniqueEntity("email", message="Cette valeur est déjà utilisée")
  * @ApiResource(
  *     collectionOperations={
     *      "GET"={
@@ -25,7 +29,7 @@ use Symfony\Component\Validator\Constraints as Assert;
     *      },
     *      "POST"={
         *       "openapi_context"= {
-        *            "summary"="Crée un nouvel utilisateur",
+        *            "summary"="Créer un nouvel utilisateur",
         *            "description" = "Création d'un nouvel utilisateur",
     *           }
     *      }
@@ -68,14 +72,14 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
      * @ORM\Column(type="string", length=180, unique=true)
      * @Assert\NotBlank(message="Cette valeur ne doit pas être vide")
      * @Assert\Email(message = "L'email '{{ value }}' n'est pas un email valide.")
-     * @Groups({"user:read","user:write"})
+     * @Groups({"user:read","user:write","parcel:read"})
      * 
      */
     private $email;
 
     /**
      * @ORM\Column(type="json")
-     * @Groups({"user:read","user:write"})
+     * @Groups({"user:read","user:write","parcel:read"})
      */
     private $roles = [];
 
@@ -98,6 +102,17 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
      * @Groups({"user:read"})
      */
     private $updatedAt;
+
+    /**
+     * @ORM\OneToMany(targetEntity=Parcel::class, mappedBy="user")
+     * @Groups({"user:read"})
+     */
+    private $parcels;
+
+    public function __construct()
+    {
+        $this->parcels = new ArrayCollection();
+    }
 
     public function getId(): ?int
     {
@@ -222,6 +237,36 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
         if ($this->getCreatedAt() === null) {
             $this->setCreatedAt(new \DateTime('now'));
         }
+    }
+
+    /**
+     * @return Collection<int, Parcel>
+     */
+    public function getParcels(): Collection
+    {
+        return $this->parcels;
+    }
+
+    public function addParcel(Parcel $parcel): self
+    {
+        if (!$this->parcels->contains($parcel)) {
+            $this->parcels[] = $parcel;
+            $parcel->setUser($this);
+        }
+
+        return $this;
+    }
+
+    public function removeParcel(Parcel $parcel): self
+    {
+        if ($this->parcels->removeElement($parcel)) {
+            // set the owning side to null (unless already changed)
+            if ($parcel->getUser() === $this) {
+                $parcel->setUser(null);
+            }
+        }
+
+        return $this;
     }
 
 
